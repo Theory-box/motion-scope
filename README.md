@@ -4,7 +4,9 @@ Real-time motion magnification in the browser. Reads a webcam or a
 DSLR-as-webcam feed and exaggerates subtle motion live, so small movements — a
 swaying branch, a pulse, machine vibration, insect wingbeats — become visible.
 
-Single self-contained HTML file. No build step, no dependencies.
+A single HTML file with no build step. The Neural method also loads ONNX
+models from the `models/` folder next to it. Download the full zip from
+[Releases](https://github.com/Theory-box/motion-scope/releases/latest).
 
 ## Requirements
 
@@ -21,20 +23,49 @@ Single self-contained HTML file. No build step, no dependencies.
 
 ## Methods
 
-- **Linear** (default) — amplifies per-pixel brightness change. Simple and
+Pick a method from the icon rail on the left of the video (two-letter labels).
+The control panel shows only the settings that apply to the current method.
+
+- **Linear** (`LI`, default) — amplifies per-pixel brightness change. Simple and
   responsive, but amplifies brightness noise along with the motion.
-- **Phase (beta)** — a single-scale Riesz-pyramid method that amplifies local
+- **Phase** (`PH`, beta) — a single-scale Riesz method that amplifies local
   *displacement* rather than brightness, so brightness noise is largely left
   alone. Includes amplitude-weighted smoothing, which only shifts pixels sitting
   on real structure and ignores flat/noisy regions. Heavier than Linear; drop
-  **Detail** if the frame rate falls. Single-scale, so it favours fine-detail
-  motion — still experimental and may need tuning.
+  **Detail** if the frame rate falls. Favours fine-detail motion.
+- **Riesz** (`RI`, beta) — the full multi-scale Riesz-pyramid method (Wadhwa et
+  al. 2014): Laplacian pyramid, quaternionic phase per level, temporal
+  band-pass, amplitude-weighted smoothing, then phase shift and collapse.
+  Handles motion at every scale, not just fine detail. Runs on the GPU with a
+  CPU fallback.
+- **Neural** (`AI`, beta) — learned motion magnification running in the browser
+  through ONNX Runtime Web (WebGPU, WASM fallback). Choose between **MagNet**
+  (instant, any resolution), **STB-VMM 128 / 256** (Swin Transformer — sharper,
+  less noise) and **theta-Net** (small model, native 1280). **Sharp** mode puts
+  the magnified motion back onto the full-resolution frame so low-res models
+  still look crisp. Needs the `models/` folder next to the HTML. Slow live, so
+  best combined with **Process video** (offline render to WebM).
+- **Warp** (`WA`, beta) — Lagrangian magnification: measures a motion field
+  against a slowly updated rest frame and physically pushes pixels along the
+  amplified motion. Good for large, visible movement; an **Overlay** slider
+  layers Linear-style brightness amplification on top.
+- **Isolate** (`IS`) — learns the still background and shows only what differs
+  from it, on black. Good for spotting where something is moving rather than how;
+  slow-drifting things (smoke) gradually fade into the background.
+- **Accumulate** (`AC`) — not magnification: stacks frames from a static camera
+  to denoise and brighten dark or noisy scenes. The **Stack** tab averages
+  frames (with auto-brighten, freeze and Save PNG); the **Super-res** tab uses
+  tiny sub-pixel shifts between frames to build a 2×/3×/4× higher-resolution
+  image (drizzle). Hot pixels and fixed-pattern noise don't average out.
+
+Each magnification method has two views: **Amplified** (`A`, motion over the
+scene) and **Motion only** (`M`, the bare motion signal).
 
 ## Controls
 
 | Control | Meaning |
 | --- | --- |
-| **Method** | Linear (brightness) or Phase (displacement, beta) |
+| **Method** | Linear, Phase, Riesz, Neural, Warp, Isolate or Accumulate — see [Methods](#methods) |
 | **Amplified / Motion only** | Overlay boosted motion on the image, or show just the motion field |
 | **Amplification** | Gain applied to the motion signal |
 | **Low / High cutoff** | Temporal band (Hz) that gets amplified — sway ≈ low, wingbeats ≈ high |
@@ -67,5 +98,5 @@ in-app fix.
 
 ## Status
 
-Linear + temporal denoise + spatial scale: working, syntax-checked.
-Phase mode: beta, single-scale, needs live tuning.
+Linear, Isolate and Accumulate: working. Phase, Riesz, Neural and Warp: beta.
+See [CHANGELOG.md](CHANGELOG.md) for the full history.
