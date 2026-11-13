@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+# Publishes the app to https://theory-box.github.io/motion-scope/
+# Pages only has one site, so only the branch listed here deploys.
+on:
+  push:
+    branches: [mobile]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pages does not serve LFS objects, so pull the real models here.
+      # Cache them by content id so each deploy doesn't spend LFS bandwidth.
+      - name: List LFS objects
+        run: git lfs ls-files --long | cut -d' ' -f1 | sort > .lfs-ids
+      - name: Restore LFS cache
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-ids') }}
+      - name: Pull LFS objects
+        run: git lfs pull
+
+      - name: Build site
+        run: |
+          mkdir -p _site/models
+          cp motion_scope.html _site/index.html
+          cp motion_scope.html manifest.webmanifest README.md CHANGELOG.md _site/
+          cp -r icons _site/
+          # Only the models the app actually loads (the 512 model is unused).
+          cp models/magnet.onnx models/stbvmm_128_fp16.onnx models/stbvmm_256_fp16.onnx models/tnet.onnx _site/models/
+          # Fail if a model is still an LFS pointer instead of real data.
+          for f in _site/models/*.onnx; do
+            if [ "$(stat -c%s "$f")" -lt 10000 ]; then echo "::error::$f is an LFS pointer"; exit 1; fi
+          done
+          ls -lR _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

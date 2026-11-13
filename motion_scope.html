@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
 <title>Motion Scope — live motion magnification</title>
 <style>
   :root{
@@ -61,6 +65,7 @@
   canvas#view{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;display:block;background:#000}
   canvas#viewGPU{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;background:#000}
   video#src{display:none}
+  [hidden]{display:none!important}
   .stage .overlay{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:.6rem .75rem}
   #videoBar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:.55rem;padding:.4rem .7rem;background:linear-gradient(transparent,rgba(0,0,0,.7));z-index:6}
   #videoBar button{background:rgba(0,0,0,.35);color:#fff;border:none;border-radius:5px;padding:.15rem .6rem;cursor:pointer;font-size:.95rem;line-height:1.5;flex:none}
@@ -108,7 +113,77 @@
   .beta{display:inline-block;font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;color:var(--amber);border:1px solid var(--amber);border-radius:4px;padding:0 .3rem;margin-left:.35rem;vertical-align:middle}
   .err{color:var(--hot);font-size:.78rem;line-height:1.5;display:none}
   .gpumsg{position:absolute;left:.6rem;bottom:.6rem;max-width:90%;z-index:5;font-family:var(--mono);font-size:.72rem;line-height:1.4;color:var(--hot);background:rgba(6,10,14,.82);border:1px solid var(--hot);border-radius:6px;padding:.4rem .55rem;white-space:pre-wrap;word-break:break-word}
-  @media (max-width:860px){.wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(280px,1fr) auto}.rail{max-height:48vh}.toolrail{flex-direction:row;flex-wrap:wrap;justify-content:center}.toolrail .trsep{width:1px;height:26px;margin:0 .3rem}#viewIcons{flex-direction:row;gap:.3rem}}
+  /* ---- touch + small screens ---- */
+  .railhead{display:contents}
+  #panelToggle,#fsBtn,#holdOrigBtn{display:none}
+  .stage{touch-action:none}
+  #holdOrigBtn{position:absolute;top:.6rem;right:.6rem;z-index:7;padding:.55rem .9rem;border-radius:999px;border:1px solid var(--line);background:rgba(6,10,14,.72);color:var(--ink);font-size:.8rem;font-weight:600;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;cursor:pointer}
+  #holdOrigBtn.on{background:var(--phosphor);color:#04120e;border-color:var(--phosphor)}
+  body.touch.running #holdOrigBtn{display:block}
+  body.touch .readout{max-width:calc(100% - 9.5rem)}
+  .tiptoast{position:absolute;left:50%;top:.6rem;transform:translateX(-50%);z-index:20;max-width:calc(100% - 1.2rem);background:var(--panel-2);color:var(--ink);border:1px solid var(--phosphor);border-radius:8px;padding:.4rem .75rem;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;opacity:0;transition:opacity .15s}
+  .tiptoast.show{opacity:1}
+  @media (hover:none){ .tricon::after{display:none} }
+  @media (pointer:coarse){
+    button,select,input,summary{touch-action:manipulation}
+    .tricon{width:44px;height:44px;font-size:.86rem}
+    button.act,.seg button{min-height:44px}
+    select{min-height:44px}
+    input[type=range]{height:30px;background:linear-gradient(var(--panel-2),var(--panel-2)) center/100% 4px no-repeat}
+    input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
+    input[type=range]::-moz-range-thumb{width:24px;height:24px}
+    .freqtrack{height:40px}
+    .freqtrack::before{top:18px}
+    .freqband{top:16px}
+    .freqthumb{top:4px;width:24px;height:32px;margin-left:-12px}
+    details.group>summary{min-height:44px}
+    header .hbtn{padding:.5rem .75rem}
+  }
+  /* Phones in portrait (and narrow windows): stacked layout with a collapsible bottom panel. */
+  @media (max-width:860px) and (min-height:521px), (max-width:860px) and (orientation:portrait){
+    html,body{height:100dvh;overflow:hidden}
+    header{padding:.45rem .6rem;gap:.35rem;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-top:max(.45rem,env(safe-area-inset-top))}
+    header::-webkit-scrollbar{display:none}
+    header .sub{display:none}
+    header .mark{font-size:.74rem;letter-spacing:.02em;white-space:nowrap}
+    header .ebadge{white-space:nowrap;font-size:.56rem;padding:.25rem .35rem}
+    header .hbtn{margin-left:0;padding:.45rem .55rem;font-size:.74rem;white-space:nowrap;flex:none}
+    #fsBtn{display:inline-block}
+    .wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto}
+    .toolrail{flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;align-items:center;overflow-x:auto;overflow-y:hidden;padding:.35rem .5rem;gap:.25rem;scrollbar-width:none}
+    .toolrail::-webkit-scrollbar,.tabstrip::-webkit-scrollbar{display:none}
+    .toolrail .trlabel{display:none}
+    .toolrail .trsep{width:1px;height:28px;margin:0 .25rem;flex:none}
+    #viewIcons{flex-direction:row;align-items:center;gap:.25rem}
+    .tricon{flex:none}
+    .stage{min-height:0}
+    .readout{font-size:.62rem;padding:.25rem .4rem;max-width:62%}
+    .energy{max-width:180px}
+    .rail{flex-direction:column;height:44dvh;max-height:none}
+    .railhead{display:flex;align-items:stretch;border-bottom:1px solid var(--line);flex:none}
+    .tabstrip{flex:1;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:none;padding:.3rem .4rem;gap:.25rem;scrollbar-width:none}
+    .tabstrip button{width:auto;flex:none;padding:.5rem .75rem;font-size:.66rem}
+    #panelToggle{display:flex;align-items:center;justify-content:center;flex:none;width:48px;background:var(--panel);border:none;border-left:1px solid var(--line);color:var(--muted);font-size:1.1rem;cursor:pointer}
+    .tabcontent{padding:.8rem .9rem calc(.9rem + env(safe-area-inset-bottom));gap:1.1rem}
+    .wrap.panel-collapsed .rail{height:auto}
+    .wrap.panel-collapsed .tabcontent{display:none}
+    .empty{padding:1.2rem}
+  }
+  /* Phones in landscape: keep the side-by-side layout, but fit it into a short screen. */
+  @media (max-height:520px) and (orientation:landscape){
+    html,body{height:100dvh;overflow:hidden}
+    header{padding:.3rem .7rem;padding-left:max(.7rem,env(safe-area-inset-left))}
+    header .sub{display:none}
+    #fsBtn{display:inline-block}
+    .wrap{grid-template-columns:auto 1fr 300px}
+    .toolrail{overflow-y:auto;overflow-x:hidden;padding:.4rem .3rem;gap:.2rem;scrollbar-width:none;padding-left:max(.3rem,env(safe-area-inset-left))}
+    .toolrail::-webkit-scrollbar{display:none}
+    .toolrail .trlabel{display:none}
+    .tricon{flex:none}
+    .stage{min-height:0}
+    .readout{font-size:.62rem}
+    .tabcontent{padding:.7rem .8rem;padding-right:max(.8rem,env(safe-area-inset-right))}
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -119,6 +194,7 @@
   <span id="engineBadge" class="ebadge" title="detecting…">ENGINE: …</span>
   <button id="gpuBtn" class="hbtn" aria-pressed="false" disabled title="GPU acceleration (Linear view)">GPU</button>
   <button id="cmpBtn" class="hbtn" aria-pressed="false" title="Click to cycle compare (side-by-side / stacked / off). Hold C to peek at the original.">Compare</button>
+  <button id="fsBtn" class="hbtn" aria-pressed="false" aria-label="Full screen" title="Full screen">⛶</button>
 </header>
 
 <div class="wrap">
@@ -155,6 +231,8 @@
       <div class="energy">motion energy<div class="bar"><i id="energyBar"></i></div></div>
     </div>
     <div id="gpuMsg" class="gpumsg" hidden></div>
+    <button id="holdOrigBtn" type="button" aria-label="Hold to show the original">Hold: original</button>
+    <div id="tipToast" class="tiptoast" aria-live="polite"></div>
     <div id="videoBar" style="display:none">
       <button id="vbPlay" title="Play / Pause">&#10074;&#10074;</button>
       <input type="range" id="vbSeek" min="0" max="1000" step="1" value="0">
@@ -162,12 +240,13 @@
     </div>
     <div class="empty" id="empty">
       <h2>No camera running</h2>
-      <p>Pick a source to begin — <b>Live video</b>, <b>Share screen</b>, or <b>Open video file</b>. Point a tripod-mounted camera at something nearly still and turn amplification up.</p>
+      <p>Pick a source to begin — <b>Live video</b>, <span id="emptyShare"><b>Share screen</b>, </span>or <b>Open video file</b>. Point a tripod-mounted camera at something nearly still and turn amplification up.</p>
       <p class="err" id="err"></p>
     </div>
   </div>
 
   <div class="rail">
+    <div class="railhead">
     <div class="tabstrip" role="tablist" aria-label="Panel sections">
       <button data-tab="capture" aria-selected="true">Capture</button>
       <button data-tab="settings" aria-selected="false">Settings</button>
@@ -179,6 +258,8 @@
       <button data-tab="stack" id="stackTabBtn" aria-selected="false" style="display:none">Stack</button>
       <button data-tab="superres" id="srTabBtn" aria-selected="false" style="display:none">Super-res</button>
     </div>
+    <button id="panelToggle" type="button" aria-expanded="true" aria-label="Hide controls">▾</button>
+    </div>
     <div class="tabcontent" id="tabcontent">
     <details class="group" data-tab="capture" open>
       <summary><h3>Source</h3></summary>
@@ -186,6 +267,8 @@
         <button class="act primary" id="liveBtn">Live video</button>
         <button class="act" id="screenBtn">Share screen</button>
       </div>
+      <label class="field" id="camField"><span class="row"><span>Camera</span></span>
+        <select id="camSel" aria-label="Camera"><option value="">Default camera</option></select></label>
       <input type="file" id="fileInput" accept="video/*" style="display:none">
       <button class="act" id="openFileBtn">Open video file…</button>
       <div id="fileCtrls" style="display:none;margin-top:.4rem">
@@ -261,7 +344,7 @@
         </div>
         <div class="btns"><button class="act" id="neuralRefBtn">Set reference frame</button></div>
         <p class="note" id="neuralStat"></p>
-        <p class="note"><b>Neural (beta)</b> — learned magnification in your browser. <b>MagNet</b> = instant, any resolution. <b>STB 128 / 256</b> = Swin-Transformer, sharper/less noise (~125 / ~500&nbsp;ms). <b>θNet</b> = tiny 2025 model, runs native 1280 (sharp, experimental — may be memory-heavy). <b>Sharp</b> composites the AI's magnified <i>motion</i> onto your full-resolution frame (crisp) — <b>Upscale</b> shows the raw low-res model output (soft). Motion is vs a reference frame; <b>Gain</b> = factor.</p>
+        <p class="note"><b>Neural (beta)</b> — learned magnification in your browser. <b>MagNet</b> = instant, any resolution. <b>STB 128 / 256</b> = Swin-Transformer, sharper/less noise (~125 / ~500&nbsp;ms). <b>θNet</b> = tiny 2025 model, runs native 1280 (sharp, experimental — may be memory-heavy). <b>Sharp</b> composites the AI's magnified <i>motion</i> onto your full-resolution frame (crisp) — <b>Upscale</b> shows the raw low-res model output (soft). Motion is vs a reference frame; <b>Gain</b> = factor. On phones, <b>MagNet</b> and <b>STB 128</b> are the practical choices — the bigger models are large downloads and can run out of memory.</p>
     </details>
 
 
@@ -481,7 +564,8 @@
   const readout = document.getElementById('readout');
   const energyBar = document.getElementById('energyBar');
   const overlay = document.getElementById('overlay');
-  const deviceSel = { value:'', innerHTML:'', appendChild(){}, onchange:null };
+  const isTouch = matchMedia('(pointer:coarse)').matches;
+  const deviceSel = document.getElementById('camSel');
 
   const proc = document.createElement('canvas');
   const pctx = proc.getContext('2d', { willReadFrequently: true });
@@ -990,10 +1074,26 @@
       const devs = await navigator.mediaDevices.enumerateDevices();
       const cams = devs.filter(d => d.kind === 'videoinput');
       const cur = deviceSel.value;
-      deviceSel.innerHTML = '<option value="">Default camera</option>';
-      cams.forEach((c,i) => { const o=document.createElement('option'); o.value=c.deviceId; o.textContent=c.label||('Camera '+(i+1)); deviceSel.appendChild(o); });
-      deviceSel.value = cur;
+      fillCamBase();
+      cams.forEach((c,i) => { if(!c.deviceId) return; const o=document.createElement('option'); o.value=c.deviceId; o.textContent=c.label||('Camera '+(i+1)); deviceSel.appendChild(o); });
+      if([...deviceSel.options].some(o=>o.value===cur)) deviceSel.value = cur;
+      // Desktop with a single webcam doesn't need the picker.
+      $('camField').style.display = (isTouch || cams.length>1) ? '' : 'none';
     }catch(e){}
+  }
+  // Phones default to the rear camera; 'env'/'user' map to facingMode, anything else is a deviceId.
+  function fillCamBase(){
+    deviceSel.innerHTML = isTouch
+      ? '<option value="env">Rear camera</option><option value="user">Front camera</option>'
+      : '<option value="">Default camera</option>';
+  }
+  fillCamBase(); listDevices();
+  function camConstraints(id){
+    const size = { width:{ideal:1920}, height:{ideal:1080} };
+    if(id==='env') return { facingMode:{ideal:'environment'}, ...size };
+    if(id==='user') return { facingMode:'user', ...size };
+    if(id) return { deviceId:{exact:id}, ...size };
+    return size;
   }
   function startVfc(){ capFps=0; _vfcN=0; _vfcT0=0; if(!video.requestVideoFrameCallback) return;
     const tick=(now,meta)=>{ if(!_vfcT0) _vfcT0=now; _vfcN++; const dt=now-_vfcT0; if(dt>=1000){ capFps=Math.round(_vfcN*1000/dt); _vfcN=0; _vfcT0=now; }
@@ -1004,7 +1104,7 @@
     startVfc();
     if(video.videoHeight){ resEl.max = video.videoHeight; if(resVal) resVal.title='max = '+video.videoHeight+'p (native)'; }
     allocBuffers();
-    running=true; empty.hidden=true; overlay.hidden=false;
+    running=true; empty.hidden=true; overlay.hidden=false; document.body.classList.add('running'); keepAwake(true);
     if(useGPU && !gpu && !gpuFailed && navigator.gpu){ initGPU().then(ok=>{ if(!ok) useGPU=false; const gb=$('gpuBtn'); if(gb) gb.setAttribute('aria-pressed', !!gpu); if(typeof updateEngineBadge==='function') updateEngineBadge(); }); }
     lastT = performance.now(); loop();
   }
@@ -1035,7 +1135,7 @@
   async function start(){
     stop(); errEl.style.display='none';
     const id = deviceSel.value;
-    const constraints = { video: id ? { deviceId:{exact:id}, width:{ideal:1920}, height:{ideal:1080} } : { width:{ideal:1920}, height:{ideal:1080} }, audio:false };
+    const constraints = { video: camConstraints(id), audio:false };
     try{ stream = await navigator.mediaDevices.getUserMedia(constraints); await attachStream(); activeSource='camera'; updateSourceButtons(); await listDevices(); }
     catch(e){ showError(e); }
   }
@@ -1055,7 +1155,7 @@
     if(fileURL){ URL.revokeObjectURL(fileURL); fileURL=null; }
     const fc=$('fileCtrls'); if(fc) fc.style.display='none'; if(videoBar) videoBar.style.display='none';
     if(typeof stopListen==='function') stopListen();
-    overlay.hidden=true; empty.hidden=false;
+    overlay.hidden=true; empty.hidden=false; document.body.classList.remove('running'); keepAwake(false); holdOrig=false;
     activeSource=null; updateSourceButtons();
   }
   function showError(e){
@@ -1073,6 +1173,51 @@
     if(ob){ ob.textContent=activeSource==='file'?'Stop':'Open video file\u2026'; ob.classList.toggle('stop',activeSource==='file'); } }
   if($('liveBtn')) $('liveBtn').onclick = () => { if(activeSource==='camera') stop(); else start(); };
   $('screenBtn').onclick = () => { if(activeSource==='screen') stop(); else startScreen(); };
+
+  // --- mobile / touch support ---
+  if(isTouch) document.body.classList.add('touch');
+  // Android has no screen capture in the browser.
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){ $('screenBtn').style.display='none'; const es=$('emptyShare'); if(es) es.style.display='none'; }
+  // Keep the screen on while a source is running (re-acquired when the tab comes back).
+  let wakeLock=null;
+  async function keepAwake(on){
+    try{
+      if(on && !wakeLock && navigator.wakeLock && document.visibilityState==='visible'){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>{ wakeLock=null; }); }
+      else if(!on && wakeLock){ const w=wakeLock; wakeLock=null; await w.release(); }
+    }catch(e){}
+  }
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && running) keepAwake(true); });
+  // Rotating a phone flips the camera frame's aspect; rebuild buffers and drop tracked points.
+  video.addEventListener('resize',()=>{
+    if(!running || !video.videoWidth || !procH) return;
+    if(Math.abs(video.videoWidth/video.videoHeight - procW/procH) < 0.02) return;
+    aTrackers.length=0; sTrackers.length=0; autoCorners=[]; autoNeedsDetect=autoStab; _stabM=null; _stabMApplied=null; _sm=null; _stabMAppliedPrev=null;
+    resEl.max = video.videoHeight; if(targetH > video.videoHeight){ targetH = video.videoHeight; resEl.value = targetH; resVal.textContent = targetH + 'p'; }
+    allocBuffers();
+  });
+  // Touch replacement for holding C: press and hold to see the original.
+  { const hb=$('holdOrigBtn');
+    const on=(e)=>{ e.preventDefault(); e.stopPropagation(); holdOrig=true; hb.classList.add('on'); try{ hb.setPointerCapture(e.pointerId); }catch(_){} };
+    const off=()=>{ holdOrig=false; hb.classList.remove('on'); };
+    hb.addEventListener('pointerdown',on); hb.addEventListener('pointerup',off); hb.addEventListener('pointercancel',off); hb.addEventListener('lostpointercapture',off);
+    hb.addEventListener('contextmenu',e=>e.preventDefault()); }
+  // No hover on touch screens: briefly show the method/view name when an icon is tapped.
+  { const toast=$('tipToast'); let tt=0;
+    $('toolrail').addEventListener('click',(e)=>{ if(!isTouch) return; const b=e.target.closest('.tricon'); if(!b) return;
+      toast.textContent=b.dataset.tip||b.getAttribute('aria-label')||''; toast.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>toast.classList.remove('show'),1600); }); }
+  // Collapse the bottom control panel to give the video the whole screen.
+  { const pt=$('panelToggle'), wrap=document.querySelector('.wrap');
+    const setCollapsed=(c)=>{ wrap.classList.toggle('panel-collapsed',c); pt.textContent=c?'▴':'▾'; pt.setAttribute('aria-expanded',String(!c)); pt.setAttribute('aria-label',c?'Show controls':'Hide controls'); dispatchEvent(new Event('resize')); };
+    pt.onclick=()=>setCollapsed(!wrap.classList.contains('panel-collapsed'));
+    // Picking a tab while collapsed opens the panel again.
+    document.querySelectorAll('.tabstrip button').forEach(b=>b.addEventListener('click',()=>{ if(wrap.classList.contains('panel-collapsed')) setCollapsed(false); })); }
+  // Full screen (hidden where the browser can't do it).
+  { const fb=$('fsBtn'), root=document.documentElement;
+    if(!root.requestFullscreen) fb.remove();
+    else {
+      fb.onclick=()=>{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); else root.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); };
+      document.addEventListener('fullscreenchange',()=>{ fb.setAttribute('aria-pressed',String(!!document.fullscreenElement)); setTimeout(()=>dispatchEvent(new Event('resize')),100); });
+    } }
   deviceSel.onchange = () => { if (running) start(); };
 
   // --- helpers ---
