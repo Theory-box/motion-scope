@@ -115,12 +115,22 @@
   .gpumsg{position:absolute;left:.6rem;bottom:.6rem;max-width:90%;z-index:5;font-family:var(--mono);font-size:.72rem;line-height:1.4;color:var(--hot);background:rgba(6,10,14,.82);border:1px solid var(--hot);border-radius:6px;padding:.4rem .55rem;white-space:pre-wrap;word-break:break-word}
   /* ---- touch + small screens ---- */
   .railhead{display:contents}
-  #panelToggle,#fsBtn,#holdOrigBtn{display:none}
+  #panelToggle,#holdOrigBtn,#vfExit{display:none}
+  /* Full-screen video: the stage covers everything; only on-video controls remain. */
+  body.vfull .stage{position:fixed;inset:0;z-index:100;min-height:0}
+  #vfExit{position:absolute;top:max(.6rem,env(safe-area-inset-top));right:max(.6rem,env(safe-area-inset-right));z-index:8;width:44px;height:44px;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--line);background:rgba(6,10,14,.72);color:var(--ink);font-size:1.05rem;cursor:pointer;padding:0}
+  #vfExit:hover{border-color:var(--phosphor)}
+  body.vfull #vfExit{display:flex}
+  body.vfull #holdOrigBtn{top:max(.6rem,env(safe-area-inset-top));right:calc(max(.6rem,env(safe-area-inset-right)) + 52px)}
+  body.vfull .stage .overlay{padding-top:max(.6rem,env(safe-area-inset-top));padding-left:max(.75rem,env(safe-area-inset-left))}
+  body.vfull #videoBar{padding-bottom:max(.4rem,env(safe-area-inset-bottom))}
   .stage{touch-action:none}
   #holdOrigBtn{position:absolute;top:.6rem;right:.6rem;z-index:7;padding:.55rem .9rem;border-radius:999px;border:1px solid var(--line);background:rgba(6,10,14,.72);color:var(--ink);font-size:.8rem;font-weight:600;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;cursor:pointer}
   #holdOrigBtn.on{background:var(--phosphor);color:#04120e;border-color:var(--phosphor)}
   body.touch.running #holdOrigBtn{display:block}
   body.touch .readout{max-width:calc(100% - 9.5rem)}
+  body.vfull .readout{max-width:calc(100% - 4.5rem)}
+  body.vfull.touch .readout{max-width:calc(100% - 13rem)}
   .tiptoast{position:absolute;left:50%;top:.6rem;transform:translateX(-50%);z-index:20;max-width:calc(100% - 1.2rem);background:var(--panel-2);color:var(--ink);border:1px solid var(--phosphor);border-radius:8px;padding:.4rem .75rem;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;opacity:0;transition:opacity .15s}
   .tiptoast.show{opacity:1}
   @media (hover:none){ .tricon::after{display:none} }
@@ -194,7 +204,7 @@
   <span id="engineBadge" class="ebadge" title="detecting…">ENGINE: …</span>
   <button id="gpuBtn" class="hbtn" aria-pressed="false" disabled title="GPU acceleration (Linear view)">GPU</button>
   <button id="cmpBtn" class="hbtn" aria-pressed="false" title="Click to cycle compare (side-by-side / stacked / off). Hold C to peek at the original.">Compare</button>
-  <button id="fsBtn" class="hbtn" aria-pressed="false" aria-label="Full screen" title="Full screen">⛶</button>
+  <button id="fsBtn" class="hbtn" aria-pressed="false" aria-label="Full-screen video" title="Full-screen video">⛶</button>
 </header>
 
 <div class="wrap">
@@ -232,6 +242,7 @@
     </div>
     <div id="gpuMsg" class="gpumsg" hidden></div>
     <button id="holdOrigBtn" type="button" aria-label="Hold to show the original">Hold: original</button>
+    <button id="vfExit" type="button" aria-label="Exit full screen" title="Exit full screen (Esc)">✕</button>
     <div id="tipToast" class="tiptoast" aria-live="polite"></div>
     <div id="videoBar" style="display:none">
       <button id="vbPlay" title="Play / Pause">&#10074;&#10074;</button>
@@ -1211,13 +1222,20 @@
     pt.onclick=()=>setCollapsed(!wrap.classList.contains('panel-collapsed'));
     // Picking a tab while collapsed opens the panel again.
     document.querySelectorAll('.tabstrip button').forEach(b=>b.addEventListener('click',()=>{ if(wrap.classList.contains('panel-collapsed')) setCollapsed(false); })); }
-  // Full screen (hidden where the browser can't do it).
-  { const fb=$('fsBtn'), root=document.documentElement;
-    if(!root.requestFullscreen) fb.remove();
-    else {
-      fb.onclick=()=>{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); else root.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); };
-      document.addEventListener('fullscreenchange',()=>{ fb.setAttribute('aria-pressed',String(!!document.fullscreenElement)); setTimeout(()=>dispatchEvent(new Event('resize')),100); });
-    } }
+  // Full-screen video: the stage covers the window (CSS), and the browser goes
+  // full screen too where it can, so its bars disappear.
+  { const fb=$('fsBtn'), xb=$('vfExit'), root=document.documentElement, body=document.body;
+    const setVF=(on)=>{
+      body.classList.toggle('vfull',on); fb.setAttribute('aria-pressed',String(on));
+      if(on){ if(root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }
+      else if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+      setTimeout(()=>dispatchEvent(new Event('resize')),100);
+    };
+    fb.onclick=()=>setVF(!body.classList.contains('vfull'));
+    xb.onclick=()=>setVF(false);
+    // Leaving browser full screen (Esc, back gesture) also leaves full-screen video.
+    document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement && body.classList.contains('vfull')) setVF(false); });
+    window.addEventListener('keydown',(e)=>{ if(e.key==='Escape' && body.classList.contains('vfull')) setVF(false); }); }
   deviceSel.onchange = () => { if (running) start(); };
 
   // --- helpers ---
